@@ -54,10 +54,17 @@ jobs:
     # Mantenemos tu condición original + la automatización
     if: >
       (
-        (github.event_name == 'push' || startsWith(github.event.inputs.branch, 'release/'))
+        (
+          github.event_name == 'push'
+          ||
+          (
+            github.event.inputs.branch != '' 
+            && startsWith(github.event.inputs.branch, 'release/')
+          )
+        )
         &&
         (
-          github.event_name != 'push' 
+          github.event_name != 'push'
           || needs.detect-release.outputs.highest == '' 
           || github.ref_name == needs.detect-release.outputs.highest
         )
