@@ -1,0 +1,103 @@
+name: Deploy (Sandbox)
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  push:
+    branches:
+      - development
+      - master
+      - 'release/*'
+  workflow_dispatch:
+    inputs:
+      branch:
+        required: true
+        type: string
+
+jobs:
+  # -----------------------------------------------
+  # DETECT RELEASE MÁS ALTO (FUNCIONALIDAD CLAVE)
+  # -----------------------------------------------
+  detect-release:
+    if: startsWith(github.ref_name, 'release/')
+    runs-on: ubuntu-latest
+    outputs:
+      highest: ${{ steps.find.outputs.highest_release }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: find
+        run: |
+          echo "Buscando release más alto..."
+          releases=$(git branch -r | grep 'origin/release/' | sed 's|origin/||')
+
+          echo "Releases encontrados:"
+          echo "$releases"
+
+          highest=$(echo "$releases" | sort -V | tail -n 1)
+
+          echo "Highest release: $highest"
+          echo "highest_release=$highest" >> $GITHUB_OUTPUT
+
+
+  # -----------------------------------------------
+  # JOB: validate (MANTENIDO, PERO MOCKEADO)
+  # -----------------------------------------------
+  validate:
+    needs: detect-release
+
+    # Mantenemos tu condición original + la automatización
+    if: >
+      (
+        (github.event_name == 'push' || startsWith(github.event.inputs.branch, 'release/'))
+        &&
+        (
+          github.event_name != 'push' 
+          || needs.detect-release.outputs.highest == '' 
+          || github.ref_name == needs.detect-release.outputs.highest
+        )
+      )
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mock VALIDATE
+        run: |
+          echo "==== VALIDATE ===="
+          echo "Evento: ${{ github.event_name }}"
+          echo "Branch actual: ${{ github.ref_name }}"
+          echo "Release más alto detectado: ${{ needs.detect-release.outputs.highest }}"
+          echo "VALIDATE: OK"
+
+
+  # -----------------------------------------------
+  # JOB: deploy (MANTENIDO, PERO MOCKEADO)
+  # -----------------------------------------------
+  deploy:
+    needs: validate
+
+    # Misma condición que validate
+    if: >
+      (
+        (github.event_name == 'push' || startsWith(github.event.inputs.branch, 'release/'))
+        &&
+        (
+          github.event_name != 'push' 
+          || needs.detect-release.outputs.highest == '' 
+          || github.ref_name == needs.detect-release.outputs.highest
+        )
+      )
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mock DEPLOY
+        run: |
+          echo "==== DEPLOY ===="
+          echo "Branch actual: ${{ github.ref_name }}"
+          echo "Highest release: ${{ needs.detect-release.outputs.highest }}"
+          echo "Desplegando (mock)..."
+          echo "DEPLOY OK"
